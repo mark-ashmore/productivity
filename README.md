@@ -17,4 +17,11 @@ instructions if needed.
 
 To download this project, run the following command.
 
+```
+git clone https://github.com/mark-ashmore/productivity.git
+python3 productivity/productivity_tracker.py
+```
 
+TODO(mark-ashmore): Need to add the ability to quickly reduce the size of the
+tracker and I need to add in the ability to save workflows and tracking
+between sessions.
