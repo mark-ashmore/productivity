@@ -1,11 +1,42 @@
 """A project to track project management."""
 
+import threading
+
 import tkinter as tk
 
 from datetime import datetime
 
 WORKFLOWS = ['Select workflow']
+
 LOG = []
+
+TICKER_RUNNING = False
+
+COUNTER = 28800
+
+def counter_fun(label):
+    print('running ticker')
+    def count():
+        if TICKER_RUNNING:
+            global COUNTER
+
+            # To manage the intial delay.
+            if COUNTER == 28800:
+                display = 'Starting...'
+            else:
+                time_stamp = datetime.fromtimestamp(COUNTER)
+                display = time_stamp.strftime('%H:%M:%S')
+            label['text'] = display
+
+            # Delays by 1000ms=1 seconds and call count again.
+            label.after(1000, count)
+            COUNTER += 1
+            print('counting')
+        else:
+            print('not running')
+
+    # Triggering the start of the counter.
+    count()
 
 class RecordSession:
     """Class for recording activity session."""
@@ -48,6 +79,8 @@ class MainWindow:
         # Ticker Frame
         # shows elapsed time
         # toggle off if you want
+        self.ticker_frame = tk.Frame()
+        self.ticker_frame.config(background='gray10')
 
         # Button Frame
         self.button_frame = tk.Frame()
@@ -84,6 +117,15 @@ class MainWindow:
         )
         self.message.pack()
 
+        # Initialize Ticker Message
+        self.ticker = tk.Label(
+            master=self.ticker_frame,
+            text='00:00:00',
+            fg='white',
+            bg='gray10',
+            font=('Droid Sans Mono Dotted for Powerline Regular', 16)
+        )
+
         # Key buttons
         self.start_button = tk.Button(
             master=self.button_frame,
@@ -95,13 +137,15 @@ class MainWindow:
             master=self.button_frame,
             text='Stop',
             fg='red',
-            command=self.stop_recording
+            command=self.stop_recording,
+            state='disabled'
         )
         self.pause_button = tk.Button(
             master=self.button_frame,
             text='Pause',
             fg='Gold4',
-            command=self.pause_recording
+            command=self.pause_recording,
+            state='disabled'
         )
 
         # Slection options
@@ -145,6 +189,7 @@ class MainWindow:
         )
 
         # Grid buttons and labels
+        self.ticker.pack()
         self.start_button.grid(row=0, column=0, padx=5, pady=5)
         self.stop_button.grid(row=0, column=1, padx=5, pady=5)
         self.pause_button.grid(row=0, column=2, padx=5, pady=5)
@@ -158,6 +203,7 @@ class MainWindow:
 
         # Pack frames
         self.message_frame.pack(fill=tk.X)
+        self.ticker_frame.pack(fill=tk.X)
         self.button_frame.pack(fill=tk.X)
         self.selection_frame.pack(fill='both', expand=True)
         self.tracker_display_frame.pack(fill='both', expand=True)
@@ -185,73 +231,82 @@ class MainWindow:
 
     def start_recording(self):
         """Kicks off a recording session for a workflow."""
-        if not self.last_selection:
-            self.message['text'] = 'Please select a workflow before starting.'
+        try:
+            selection = self.last_selection
+        except AttributeError:
+            self.message['text'] = 'Please select "track workflow" before starting.'
         else:
             print(LOG)
             is_logged = False
             for a in LOG:
-                try:
-                    if self.last_selection == a.activity:
-                        a.add_session()
-                        is_logged = True
-                        break
-                    else:
-                        continue
-                except AttributeError:
-                    print('AttributeError')
+                if self.last_selection == a.activity:
+                    a.add_session()
+                    is_logged = True
+                    break
+                else:
+                    continue
             if not is_logged:
                 self.logged_selection = RecordSession(self.last_selection)
                 LOG.append(self.logged_selection)
             self.message['text'] = 'Now tracking ' + self.last_selection + '...'
+            global TICKER_RUNNING
+            TICKER_RUNNING = True
+            counter_fun(self.ticker)
+            self.start_button['state'] = 'disabled'
+            self.stop_button['state'] = 'normal'
+            self.pause_button['state'] = 'normal'
+
 
     def pause_recording(self):
         """Pauses a recording session."""
-        print(LOG)
         is_logged = False
         for a in LOG:
-            try:
-                if self.last_selection == a.activity:
-                    if a.status == 'started':
-                        a.session_log()
-                        self.message['text'] = 'Pausing ' +\
-                                               self.last_selection + '...'
-                        is_logged = True
-                        self.update_display()
-                        break
-                    else:
-                        self.message['text'] = 'Recording hadn\'t started for ' +\
-                                               self.last_selection + ' yet.'
+            if self.last_selection == a.activity:
+                if a.status == 'started':
+                    a.session_log()
+                    self.message['text'] = 'Pausing ' +\
+                                           self.last_selection + '...'
+                    is_logged = True
+                    self.update_display()
+                    global TICKER_RUNNING
+                    TICKER_RUNNING = False
+                    self.start_button['state'] = 'normal'
+                    self.stop_button['state'] = 'normal'
+                    self.pause_button['state'] = 'disabled'
+                    break
                 else:
-                    continue
-            except AttributeError:
-                print('AttributeError')
+                    self.message['text'] = 'Recording hadn\'t started for ' +\
+                                           self.last_selection + ' yet.'
+            else:
+                continue
         if not is_logged:
             self.message['text'] = 'Recording hadn\'t started for ' +\
                                    self.last_selection + ' yet.'
 
     def stop_recording(self):
         """Stops a recording session."""
-        print(LOG)
         is_logged = False
         for a in LOG:
-            try:
-                if self.last_selection == a.activity:
-                    print('hello')
-                    if a.status == 'started':
-                        a.session_log()
-                        self.message['text'] = 'Done recording ' +\
-                                               self.last_selection
-                        is_logged = True
-                        self.update_display()
-                        break
-                    else:
-                        self.message['text'] = 'Recording hadn\'t started for ' +\
-                                               self.last_selection + ' yet.'
+            if self.last_selection == a.activity:
+                if a.status == 'started':
+                    a.session_log()
+                    self.message['text'] = 'Done recording ' +\
+                                           self.last_selection
+                    is_logged = True
+                    self.update_display()
+                    global TICKER_RUNNING
+                    TICKER_RUNNING = False
+                    self.start_button['state'] = 'normal'
+                    self.stop_button['state'] = 'disabled'
+                    self.pause_button['state'] = 'disabled'
+                    global COUNTER
+                    COUNTER = 28800
+                    break
                 else:
-                    continue
-            except AttributeError:
-                print('AttributeError')
+                    self.message['text'] = 'Recording hadn\'t started for ' +\
+                                           self.last_selection + ' yet.'
+            else:
+                continue
         if not is_logged:
             self.message['text'] = 'Recording hadn\'t started for ' +\
                                    self.last_selection + ' yet.'
@@ -267,7 +322,7 @@ class MainWindow:
                            x['end time'].strftime("%H:%M:%S") + '\n'
         self.tracker_display['text'] = display
         self.tracker_display['justify'] = tk.LEFT
-        # Add section for elaped time as well
+        # Add section for elapsed time as well
 
 def main():
     """Main function. This launched the GUI."""
