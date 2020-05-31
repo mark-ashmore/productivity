@@ -7,7 +7,7 @@ be a minimal tracker that can record time spent on specific projects.
 
 >  This is meant to be as minimal as possible. The goal is to be able to easily
 >  switch between different workflows while maintaining a full record of the
->  time spend on each.
+>  time spent on each.
 
 ## How to use
 
