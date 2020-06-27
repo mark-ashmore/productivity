@@ -406,8 +406,15 @@ class MainWindow:
         self.vsb.config(bg='khaki')
         self.vsb.pack(side='right', fill=tk.Y)
         self.canvas.pack(side='left', fill='both', expand=True)
-        self.canvas.create_window((4,4), window=self.live_report_frame, anchor='nw')
-        self.live_report_frame.bind('<Configure>', lambda event, canvas=self.canvas: onFrameConfigure(self.canvas))
+        self.canvas.create_window(
+          (4, 4),
+          window=self.live_report_frame,
+          anchor='nw'
+        )
+        self.live_report_frame.bind(
+            '<Configure>',
+            lambda event, canvas=self.canvas: onFrameConfigure(self.canvas)
+        )
         self.canvas.configure(yscrollcommand=self.vsb.set)
         global NO_LIVE_REPORT
         NO_LIVE_REPORT = False
@@ -435,16 +442,15 @@ class MainWindow:
 
                 self.live_report_frame.columnconfigure(j, weight=0, minsize=90)
                 self.live_report_frame.rowconfigure(i, weight=0, minsize=10)
-                self.e = tk.Label(master=self.live_report_frame,
-                                  bg='khaki',
-                                  font=('Roboto', 12),
-                                  text=rows[i][j]
+                self.e = tk.Label(
+                    master=self.live_report_frame,
+                    bg='khaki',
+                    font=('Roboto', 12),
+                    text=rows[i][j]
                 )
-
                 self.e.grid(row=i, column=j, sticky='w')
 
         self.tracker_display['text'] = 'Record'
-
 
 
 def main():
